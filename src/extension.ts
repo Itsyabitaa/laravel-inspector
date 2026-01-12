@@ -1,26 +1,45 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { parsePhp } from './analyzer/phpAst';
+import { extractMethods } from './analyzer/controllerMethods';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	const disposable = vscode.commands.registerCommand(
+		'laravel-inspector.analyzeController',
+		() => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) return;
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "laravel-inspector" is now active!');
+			const doc = editor.document;
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('laravel-inspector.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from laravel inspector!');
-	});
+			const isController = doc.fileName.includes(
+				`${path.sep}app${path.sep}Http${path.sep}Controllers${path.sep}`
+			);
+			if (!isController) {
+				vscode.window.showWarningMessage('Not a Laravel controller file (app/Http/Controllers).');
+				return;
+			}
+
+			const code = doc.getText();
+
+			try {
+				const ast = parsePhp(code);
+				const methods = extractMethods(ast);
+
+				console.log('--- Laravel Inspector ---');
+				console.log('File:', doc.fileName);
+				console.log('Methods found:', methods.length);
+				console.table(methods);
+
+				vscode.window.showInformationMessage(`Found ${methods.length} methods (check console).`);
+			} catch (err: any) {
+				console.error('[Laravel Inspector] Parse error:', err);
+				vscode.window.showErrorMessage('PHP parse failed. Check console.');
+			}
+		}
+	);
 
 	context.subscriptions.push(disposable);
+	console.log('[Laravel Inspector] Activated');
 }
-
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
