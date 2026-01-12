@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { parsePhp } from './analyzer/phpAst';
 import { extractMethods } from './analyzer/controllerMethods';
+import { analyzeMethod } from './analyzer/methodAnalyzer';
 
 export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerCommand(
@@ -26,12 +27,15 @@ export function activate(context: vscode.ExtensionContext) {
 				const ast = parsePhp(code);
 				const methods = extractMethods(ast);
 
-				console.log('--- Laravel Inspector ---');
-				console.log('File:', doc.fileName);
-				console.log('Methods found:', methods.length);
-				console.table(methods);
+				const analyses = methods.map(m => analyzeMethod(m.node));
 
-				vscode.window.showInformationMessage(`Found ${methods.length} methods (check console).`);
+				console.log('--- Laravel Inspector: Method Analysis ---');
+				console.table(analyses);
+
+				const nplus = analyses.filter(a => a.possibleNPlusOne).length;
+				vscode.window.showInformationMessage(
+					`Analyzed ${analyses.length} methods. Possible N+1 in ${nplus}.`
+				);
 			} catch (err: any) {
 				console.error('[Laravel Inspector] Parse error:', err);
 				vscode.window.showErrorMessage('PHP parse failed. Check console.');
