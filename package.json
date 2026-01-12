@@ -16,6 +16,10 @@
       {
         "command": "laravel-inspector.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "laravel-inspector.analyzeController",
+        "title": "Laravel Inspector: Analyze Controller"
       }
     ]
   },
