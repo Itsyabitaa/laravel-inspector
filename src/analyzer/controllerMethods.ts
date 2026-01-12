@@ -4,6 +4,7 @@ export interface MethodInfo {
     name: string;
     startLine: number;
     endLine: number;
+    node: any;
 }
 
 function walk(node: AnyNode, visit: (n: AnyNode) => void) {
@@ -35,7 +36,7 @@ export function extractMethods(ast: AnyNode): MethodInfo[] {
             const startLine = n.loc?.start?.line ?? -1;
             const endLine = n.loc?.end?.line ?? -1;
 
-            methods.push({ name, startLine, endLine });
+            methods.push({ name, startLine, endLine, node: n });
         }
     });
 
