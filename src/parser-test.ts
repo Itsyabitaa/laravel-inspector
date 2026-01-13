@@ -1,9 +1,14 @@
 import { Engine } from 'php-parser';
 
-
 const code = `
 <?php
-helloWorld();
+class Test {
+    function getUsersWithPosts_N_Plus_One() {
+        foreach ($users as $user) {
+            $posts = $user->posts; // This is the magic property access
+        }
+    }
+}
 `;
 
 const parser = new Engine({
