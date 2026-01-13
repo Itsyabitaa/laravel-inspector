@@ -6,6 +6,7 @@ import { analyzeMethod } from './analyzer/methodAnalyzer';
 import { LaravelInspectorCodeLensProvider } from './ui/codeLensProvider';
 import { refreshDiagnostics, diagnosticCollection } from './ui/diagnostics';
 import { LaravelInspectorHoverProvider } from './ui/hoverProvider';
+import { applyDecorations } from './ui/decorations';
 
 export function activate(context: vscode.ExtensionContext) {
 	const output = vscode.window.createOutputChannel('Laravel Inspector');
@@ -19,15 +20,28 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(diagnosticCollection);
 
+	const updateAll = (editor?: vscode.TextEditor) => {
+		if (editor) {
+			refreshDiagnostics(editor.document);
+			applyDecorations(editor);
+		}
+	};
+
 	if (vscode.window.activeTextEditor) {
-		refreshDiagnostics(vscode.window.activeTextEditor.document);
+		updateAll(vscode.window.activeTextEditor);
 	}
 
 	context.subscriptions.push(
-		vscode.workspace.onDidSaveTextDocument(refreshDiagnostics),
-		vscode.workspace.onDidChangeTextDocument(e => refreshDiagnostics(e.document)),
+		vscode.workspace.onDidSaveTextDocument(doc => {
+			const editor = vscode.window.activeTextEditor;
+			if (editor && doc === editor.document) updateAll(editor);
+		}),
+		vscode.workspace.onDidChangeTextDocument(e => {
+			const editor = vscode.window.activeTextEditor;
+			if (editor && e.document === editor.document) updateAll(editor);
+		}),
 		vscode.window.onDidChangeActiveTextEditor(editor => {
-			if (editor) refreshDiagnostics(editor.document);
+			if (editor) updateAll(editor);
 		})
 	);
 
