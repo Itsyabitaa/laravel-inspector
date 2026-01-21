@@ -3,6 +3,7 @@ import * as path from 'path';
 import { parsePhp } from '../analyzer/phpAst';
 import { extractMethods } from '../analyzer/controllerMethods';
 import { analyzeMethod } from '../analyzer/methodAnalyzer';
+import { getCached, setCached } from '../core/analysisCache';
 
 export class LaravelInspectorCodeLensProvider implements vscode.CodeLensProvider {
     provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
@@ -13,13 +14,17 @@ export class LaravelInspectorCodeLensProvider implements vscode.CodeLensProvider
 
         if (!isPhp || !isController) return [];
 
+        // Check cache first
+        const cached = getCached(document);
+        if (cached) return cached;
+
         const code = document.getText();
 
         try {
             const ast = parsePhp(code);
             const methods = extractMethods(ast);
 
-            return methods.map(m => {
+            const lenses = methods.map(m => {
                 const analysis = analyzeMethod(m.node);
                 const line = Math.max(analysis.startLine - 1, 0);
                 const range = new vscode.Range(line, 0, line, 0);
@@ -39,8 +44,14 @@ export class LaravelInspectorCodeLensProvider implements vscode.CodeLensProvider
                     arguments: []
                 });
             });
-        } catch {
+
+            // Cache the result
+            setCached(document, lenses);
+            return lenses;
+        } catch (err) {
+            console.error('[Laravel Inspector] CodeLens error:', err);
             return [];
         }
     }
 }
+
