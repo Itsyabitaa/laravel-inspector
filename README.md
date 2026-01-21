@@ -1,71 +1,151 @@
-# laravel-inspector README
+# Laravel Inspector 🔍
 
-This is the README for your extension "laravel-inspector". After writing up a brief description, we recommend including the following sections.
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/kuku-sha.laravel-inspector.svg?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=kuku-sha.laravel-inspector)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+**Laravel Inspector** is a powerful VS Code extension designed to provide instant static analysis for Laravel controllers. It helps developers identify performance bottlenecks, N+1 query issues, and complex logic before the code even leaves the editor.
 
 ---
 
-## Following extension guidelines
+## 🚀 Key Features
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+### 🔍 Real-time Analysis
+*   **Complexity Estimation**: Instant Big O complexity estimates displayed via CodeLens above each controller method.
+*   **Query Counting**: Automatically detects and counts database queries within your methods.
+*   **N+1 Detection**: Proactive alerts for potential N+1 query problems within loops.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+### 🎨 Visual Feedback
+*   **Semantic Highlighting**: Query lines are color-coded based on their performance profile:
+    *   🔵 **Blue**: Standard queries (`User::all()`, `->get()`).
+    *   🟡 **Yellow**: Queries inside loops (High N+1 risk).
+    *   🔴 **Red**: Heavy operations (e.g., `paginate()` which executes two SQL queries).
+    *   🟢 **Green**: Optimized operations (e.g., `simplePaginate()`).
 
-## Working with Markdown
+### ⚠️ Proactive Diagnostics
+*   **Problems Panel Integration**: Warnings and suggestions appear directly in the VS Code Problems panel.
+*   **Intelligent Hovers**: Detailed tooltips explaining *why* a line is flagged and how to optimize it.
+*   **Relationship Awareness**: Detects both explicit Eloquent calls and lazy-loaded relationship access.
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+---
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+## 🛠 How It Works
 
-## For more information
+Laravel Inspector uses advanced **static analysis** of your PHP code. Unlike runtime profilers, it doesn't require a running application or database connection.
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+*   **AST Parsing**: Analyzes code structure using an Abstract Syntax Tree (AST).
+*   **Heuristic Detection**: Identifies Eloquent patterns, `DB` facade calls, and relationship accessors.
+*   **Scope Analysis**: Tracks variable usage across loops and conditional blocks to estimate query impact.
 
-**Enjoy!**
+---
+
+## 📦 Installation
+
+### Via VS Code Marketplace (Recommended)
+1. Open **VS Code**.
+2. Go to **Extensions** (`Ctrl+Shift+X`).
+3. Search for `Laravel Inspector`.
+4. Click **Install**.
+
+### Manual Installation (.VSIX)
+1. Download the latest `.vsix` release.
+2. Run the following command:
+   ```bash
+   code --install-extension laravel-inspector-X.X.X.vsix
+   ```
+
+### Building from Source
+```bash
+git clone https://github.com/kuku-sha/laravel-inspector.git
+cd laravel-inspector
+npm install
+npm run compile
+```
+
+---
+
+## 📖 How to Use
+
+### 1. Automatic Analysis
+The extension activates automatically when you open any PHP file located in `app/Http/Controllers/`. Analysis happens in the background as you type.
+
+### 2. Manual Trigger
+If you want a full report of all methods in a controller:
+1. Open a controller file.
+2. Open the **Command Palette** (`Ctrl+Shift+P`).
+3. Type `Laravel Inspector: Analyze Controller`.
+4. Results will appear in the **Output** channel and a summary notification.
+
+---
+
+## ⚙️ Configuration
+
+You can customize Laravel Inspector via `File > Preferences > Settings` (search for "Laravel Inspector"):
+
+| Setting | Default | Description |
+| :--- | :--- | :--- |
+| `laravelInspector.enableCodeLens` | `true` | Show complexity and query info above methods. |
+| `laravelInspector.enableDiagnostics` | `true` | Show N+1 warnings in the Problems panel. |
+| `laravelInspector.enableDecorations` | `true` | Highlight query lines with colors. |
+
+---
+
+## 💡 Examples & Best Practices
+
+### Detecting N+1 Queries
+
+**❌ Sub-optimal Pattern**
+```php
+public function index() {
+    $users = User::all(); // 🔵 Standard Query
+    
+    foreach ($users as $user) {
+        $posts = $user->posts; // ⚠️ Yellow Highlight: Lazy loading in loop
+    }
+}
+```
+
+**✅ Optimized Pattern**
+```php
+public function index() {
+    $users = User::with('posts')->get(); // 🔵 Eager Loading
+    
+    foreach ($users as $user) {
+        $posts = $user->posts; // ✨ No extra query triggered
+    }
+}
+```
+
+---
+
+## ⚠️ Limitations & Security
+
+**Accuracy**: This is a static analysis tool. It uses heuristics and cannot account for dynamic runtime behavior (e.g., queries generated via variable method names or complex service injections).
+
+**Scope**: Currently optimized for `app/Http/Controllers/`. Support for Models, Services, and Jobs is planned for future releases.
+
+**Security**: No code is ever executed or sent to a third-party server. All analysis happens locally on your machine.
+
+---
+
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project.
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the Branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## 🙏 Acknowledgments
+
+*   [php-parser](https://github.com/glayzzle/php-parser) by glayzzle.
+*   The Laravel community for inspiring better performance tools.
