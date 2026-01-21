@@ -8,43 +8,88 @@ import { refreshDiagnostics, diagnosticCollection } from './ui/diagnostics';
 import { LaravelInspectorHoverProvider } from './ui/hoverProvider';
 import { applyDecorations } from './ui/decorations';
 
+// Helper: Check if a feature is enabled
+function isEnabled(key: string): boolean {
+	return vscode.workspace
+		.getConfiguration('laravelInspector')
+		.get<boolean>(key, true);
+}
+
+// Helper: Debounce function
+function debounce<T extends (...args: any[]) => void>(
+	fn: T,
+	delay = 300
+): T {
+	let timer: NodeJS.Timeout;
+	return ((...args: any[]) => {
+		clearTimeout(timer);
+		timer = setTimeout(() => fn(...args), delay);
+	}) as T;
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	const output = vscode.window.createOutputChannel('Laravel Inspector');
 
-	context.subscriptions.push(
-		vscode.languages.registerCodeLensProvider(
-			{ language: 'php' },
-			new LaravelInspectorCodeLensProvider()
-		)
-	);
+	// Register CodeLens provider if enabled
+	if (isEnabled('enableCodeLens')) {
+		context.subscriptions.push(
+			vscode.languages.registerCodeLensProvider(
+				{ language: 'php' },
+				new LaravelInspectorCodeLensProvider()
+			)
+		);
+	}
 
-	context.subscriptions.push(diagnosticCollection);
+	// Register diagnostics collection if enabled
+	if (isEnabled('enableDiagnostics')) {
+		context.subscriptions.push(diagnosticCollection);
+	}
 
+	// Update function with error handling
 	const updateAll = (editor?: vscode.TextEditor) => {
-		if (editor) {
-			refreshDiagnostics(editor.document);
-			applyDecorations(editor);
+		if (!editor) return;
+
+		try {
+			if (isEnabled('enableDiagnostics')) {
+				refreshDiagnostics(editor.document);
+			}
+			if (isEnabled('enableDecorations')) {
+				applyDecorations(editor);
+			}
+		} catch (err) {
+			console.error('[Laravel Inspector] Update error:', err);
+			// Fail silently - don't break editor
 		}
 	};
 
+	// Debounced version for text changes
+	const updateAllDebounced = debounce(updateAll, 300);
+
+	// Initial update
 	if (vscode.window.activeTextEditor) {
 		updateAll(vscode.window.activeTextEditor);
 	}
 
+	// Register event listeners
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument(doc => {
 			const editor = vscode.window.activeTextEditor;
-			if (editor && doc === editor.document) updateAll(editor);
+			if (editor && doc === editor.document) {
+				updateAll(editor); // Immediate on save
+			}
 		}),
 		vscode.workspace.onDidChangeTextDocument(e => {
 			const editor = vscode.window.activeTextEditor;
-			if (editor && e.document === editor.document) updateAll(editor);
+			if (editor && e.document === editor.document) {
+				updateAllDebounced(editor); // Debounced on change
+			}
 		}),
 		vscode.window.onDidChangeActiveTextEditor(editor => {
 			if (editor) updateAll(editor);
 		})
 	);
 
+	// Register hover provider
 	context.subscriptions.push(
 		vscode.languages.registerHoverProvider(
 			{ language: 'php' },
@@ -52,6 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
 		)
 	);
 
+	// Register analyze command
 	const disposable = vscode.commands.registerCommand(
 		'laravel-inspector.analyzeController',
 		() => {
@@ -97,4 +143,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 	console.log('[Laravel Inspector] Activated');
 }
+
 export function deactivate() { }
+
