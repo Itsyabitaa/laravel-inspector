@@ -1,10 +1,19 @@
 {
   "name": "laravel-inspector",
   "displayName": "laravel inspector",
-  "description": " → Laravel controller performance analyzer",
-  "version": "0.0.1",
+  "description": "Laravel controller performance analyzer",
+  "version": "0.1.0",
+  "publisher": "kuku-sha",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuku-sha/laravel-inspector.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kuku-sha/laravel-inspector/issues"
+  },
+  "homepage": "https://github.com/kuku-sha/laravel-inspector#readme",
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.108.0"
   },
   "categories": [
     "Other"
@@ -14,14 +23,30 @@
   "contributes": {
     "commands": [
       {
-        "command": "laravel-inspector.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "laravel-inspector.analyzeController",
         "title": "Laravel Inspector: Analyze Controller"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Laravel Inspector",
+      "properties": {
+        "laravelInspector.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CodeLens with complexity and query info above controller methods."
+        },
+        "laravelInspector.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show warnings for N+1 queries in the Problems panel."
+        },
+        "laravelInspector.enableDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight query lines with background colors (blue/yellow/red/green)."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
